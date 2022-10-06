@@ -1,6 +1,6 @@
 #/bin/bash -xv
 
-TARGET="/mnt/c/github/ha_sage"
+TARGET="/hass/config"
 
 generic_switch_template()
 # ENTITY_ID to refresh
