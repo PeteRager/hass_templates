@@ -1,0 +1,66 @@
+# multisensor_1
+# ENTITY_ID to monitor
+# TIMEOUT
+
+input_boolean:
+  zwave_multisensor_1_alarm_enable:
+
+template:
+  - trigger:
+      - platform: homeassistant
+        event: start
+      - platform: zwave_js.value_updated
+        entity_id:
+          - ENTITY_ID
+        command_class: COMMAND_CLASS
+        property: PROPERTY_NAME
+    sensor:
+      - name: "multisensor_1_last_updated"
+        state: "{{ now() }} "
+
+sensor:
+  - platform: template
+    sensors:
+      zwave_multisensor_1_latency:
+        unit_of_measurement: secs
+        value_template: >-
+          {%- if as_timestamp(states("sensor.multisensor_1_last_updated"),0) == 0 %}
+          0
+          {%- else %}
+          {{ ((as_timestamp(now(), 0) | int(0)) - as_timestamp(states('sensor.multisensor_1_last_updated'),0) | int(0)) }}
+          {%- endif %}
+
+binary_sensor:
+  - platform: template
+    sensors:
+      zwave_multisensor_1_online:
+        value_template: >-
+          {{ ( TIMEOUT - (states('sensor.zwave_multisensor_1_latency') | int(0))) > 0  and
+               states('sensor.multisensor_1_node_status') != 'dead' and
+               states('sensor.multisensor_1_node_status') != 'unavailable' and
+               states('sensor.multisensor_1_node_status') != 'unknown'
+          }}
+      zwave_multisensor_1_alert:
+        value_template: '{{ is_state("binary_sensor.zwave_multisensor_1_online", "off") and is_state("input_boolean.zwave_multisensor_1_alarm_enable", "on") }}'
+
+alert:
+  zwave_multisensor_1:
+    name: zwave multisensor_1 alert
+    message: '{{ state_attr("zone.home","friendly_name") }} zwave multisensor_1 offline - Latency: {{ states("sensor.zwave_multisensor_1_latency") }} Node {{ states("sensor.zwave_multisensor_1_node_status") }}'
+    done_message: '{{ state_attr("zone.home","friendly_name") }} zwave multisensor_1 online'
+    entity_id: binary_sensor.zwave_multisensor_1_alert
+    state: "on"
+    repeat: 240
+    can_acknowledge: true
+    skip_first: false
+    notifiers:
+      - sms_notifiers_all
+
+recorder:
+  include:
+    entities:
+      - binary_sensor.zwave_multisensor_1_online
+      - binary_sensor.zwave_multisensor_1_alert
+      - sensor.multisensor_1_node_status
+      - input_boolean.zwave_multisensor_1_alarm_enable
+      - alert.zwave_multisensor_1

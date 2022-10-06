@@ -1,0 +1,14 @@
+- id: "switch_1 poll switch state"
+  alias: switch_1 poll switch state
+  description: "Automation to periodically poll switches"
+  trigger:
+    - platform: time_pattern
+      minutes: "/10"
+    - platform: homeassistant
+      event: start
+  action:
+    - delay:
+        seconds: "{{ range(0, 60)|random|int }}"
+    - service: zwave_js.refresh_value
+      data:
+        entity_id: switch.switch_1
